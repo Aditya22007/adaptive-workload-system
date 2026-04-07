@@ -9,10 +9,12 @@ export default function Login({ setUser }) {
     password: ""
   });
 
+  const API_URL = "https://adaptive-workload-system.onrender.com";
+
   const handleSubmit = () => {
     const url = isLogin
-      ? "http://localhost:5000/api/login"
-      : "http://localhost:5000/api/register";
+      ? `${API_URL}/api/login`
+      : `${API_URL}/api/register`;
 
     fetch(url, {
       method: "POST",
@@ -24,7 +26,7 @@ export default function Login({ setUser }) {
       .then(res => res.json())
       .then(res => {
         if (res.success || res.message) {
-          alert(isLogin ? "Login Success" : "Registered Successfully");
+          alert(isLogin ? "Login Success ✅" : "Registered Successfully ✅");
 
           if (isLogin) {
             setUser(res.user);
@@ -32,8 +34,11 @@ export default function Login({ setUser }) {
             setIsLogin(true);
           }
         } else {
-          alert("Error!");
+          alert(res.message || "Error ❌");
         }
+      })
+      .catch(() => {
+        alert("Server error ❌");
       });
   };
 
@@ -68,11 +73,14 @@ export default function Login({ setUser }) {
           onChange={(e) => setForm({ ...form, password: e.target.value })}
         />
 
-        <button onClick={handleSubmit} style={{ marginTop: "10px" }}>
+        <button onClick={handleSubmit} style={{ marginTop: "10px", width: "100%" }}>
           {isLogin ? "Login" : "Register"}
         </button>
 
-        <p onClick={() => setIsLogin(!isLogin)} style={{ cursor: "pointer", marginTop: "10px" }}>
+        <p
+          onClick={() => setIsLogin(!isLogin)}
+          style={{ cursor: "pointer", marginTop: "10px", textAlign: "center" }}
+        >
           {isLogin ? "Create account" : "Already have account?"}
         </p>
       </div>

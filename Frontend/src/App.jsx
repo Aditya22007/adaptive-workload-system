@@ -8,17 +8,16 @@ import {
 
 export default function App() {
 
+  const API_URL = "https://adaptive-workload-system.onrender.com"; // 🔥 ADDED
+
   // 🔐 USER STATE
   const [user, setUser] = useState(
     JSON.parse(localStorage.getItem("user")) || null
   );
 
-  // 🔥 DATA STATES
   const [apiData, setApiData] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const token = localStorage.getItem("token");
 
   // =============================
   // 🔐 SAVE USER
@@ -30,29 +29,19 @@ export default function App() {
   }, [user]);
 
   // =============================
-  // 🔥 FETCH DATA (SECURE)
+  // 🔥 REAL-TIME DATA
   // =============================
   useEffect(() => {
-    if (!user || !token) return;
+    if (!user) return;
 
     const fetchData = () => {
-      fetch("http://localhost:5000/api/data", {
-        headers: {
-          Authorization: token
-        }
-      })
+      fetch(`${API_URL}/api/data`) // ✅ FIXED
+        .then(res => res.json())
         .then(res => {
-          if (res.status === 401 || res.status === 403) {
-            handleLogout(); // 🔥 auto logout if token invalid
-            return null;
-          }
-          return res.json();
-        })
-        .then(res => {
-          if (res && res.success) {
+          if (res.success) {
             setApiData(res.data);
-            setLoading(false);
           }
+          setLoading(false);
         })
         .catch(err => console.error("API Error:", err));
     };
@@ -64,19 +53,17 @@ export default function App() {
   }, [user]);
 
   // =============================
-  // 🔥 FETCH HISTORY (SECURE)
+  // 🔥 FETCH HISTORY
   // =============================
   useEffect(() => {
-    if (!user || !token) return;
+    if (!user) return;
 
-    fetch("http://localhost:5000/api/history", {
-      headers: {
-        Authorization: token
-      }
-    })
+    fetch(`${API_URL}/api/history`) // ✅ FIXED
       .then(res => res.json())
       .then(res => {
-        if (res.success) setHistory(res.data);
+        if (res.success) {
+          setHistory(res.data);
+        }
       })
       .catch(err => console.error("History Error:", err));
   }, [user]);
@@ -97,15 +84,6 @@ export default function App() {
   ];
 
   const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444"];
-
-  // =============================
-  // 🔐 LOGOUT FUNCTION
-  // =============================
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    setUser(null);
-  };
 
   // =============================
   // 🔐 LOGIN SCREEN
@@ -132,6 +110,14 @@ export default function App() {
     );
   }
 
+  // =============================
+  // 🚪 LOGOUT
+  // =============================
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setUser(null);
+  };
+
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#0B0F19", color: "white" }}>
       
@@ -146,7 +132,6 @@ export default function App() {
         <p style={{ color: "gray" }}>Live Session</p>
         <p style={{ color: "gray" }}>Tasks</p>
 
-        {/* 🔐 LOGOUT */}
         <button 
           onClick={handleLogout}
           style={{
@@ -166,10 +151,9 @@ export default function App() {
       {/* Main */}
       <div style={{ flex: 1, padding: "25px" }}>
         
-        {/* Header */}
         <div>
           <h1>Welcome, {user.username || "User"} 👋</h1>
-          <p style={{ color: "gray" }}>Secure AI Dashboard</p>
+          <p style={{ color: "gray" }}>AI Adaptive Dashboard</p>
         </div>
 
         {/* Cards */}
