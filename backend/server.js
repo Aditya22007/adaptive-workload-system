@@ -8,16 +8,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const SECRET = process.env.JWT_SECRET || "mysecretkey"; // safer
+const SECRET = process.env.JWT_SECRET || "mysecretkey";
 
 // =============================
-// 🔹 MySQL Connection (FIXED)
+// 🔹 MySQL Connection
 // =============================
 const db = mysql.createConnection(process.env.DATABASE_URL);
 
-// =============================
-// 🔹 DB Connection
-// =============================
 let dbConnected = false;
 
 db.connect((err) => {
@@ -30,24 +27,9 @@ db.connect((err) => {
 });
 
 // =============================
-// 🔐 AUTH MIDDLEWARE
+// 🧠 AI ENGINE (NO AUTH NOW)
 // =============================
-function verifyToken(req, res, next) {
-  const token = req.headers["authorization"];
-// temporarily removed auth check
-
-  jwt.verify(token, SECRET, (err, decoded) => {
-    if (err) return res.status(401).json({ error: "Invalid token" });
-
-    req.userId = decoded.id;
-    next();
-  });
-}
-
-// =============================
-// 🧠 AI ENGINE (PROTECTED)
-// =============================
-app.get("/api/data", verifyToken, (req, res) => {
+app.get("/api/data", (req, res) => {
   try {
     const productivity = Math.floor(Math.random() * 40) + 60;
     const accuracy = Math.floor(Math.random() * 30) + 60;
@@ -94,9 +76,9 @@ app.get("/api/data", verifyToken, (req, res) => {
 });
 
 // =============================
-// 📊 HISTORY API
+// 📊 HISTORY API (NO AUTH)
 // =============================
-app.get("/api/history", verifyToken, (req, res) => {
+app.get("/api/history", (req, res) => {
   if (dbConnected) {
     db.query(
       "SELECT productivity, accuracy, created_at FROM performance ORDER BY id DESC LIMIT 10",
@@ -144,7 +126,7 @@ app.post("/api/register", async (req, res) => {
 });
 
 // =============================
-// 🔐 LOGIN
+// 🔐 LOGIN (TOKEN STILL GENERATED)
 // =============================
 app.post("/api/login", (req, res) => {
   const { email, password } = req.body;
@@ -181,7 +163,7 @@ app.post("/api/login", (req, res) => {
 });
 
 // =============================
-// 🚀 START SERVER (FIXED)
+// 🚀 START SERVER
 // =============================
 const PORT = process.env.PORT || 5000;
 
