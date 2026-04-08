@@ -4,61 +4,69 @@ const cors = require("cors");
 
 const app = express();
 
-// ✅ Middleware
+// ===============================
+// ✅ MIDDLEWARE
+// ===============================
 app.use(cors());
 app.use(express.json());
 
+
 // ===============================
-// ✅ MySQL POOL (FINAL FIX)
+// ✅ DATABASE CONNECTION (FINAL FIX)
 // ===============================
+const dbUrl = new URL(process.env.DATABASE_URL);
+
 const db = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  host: dbUrl.hostname,
+  user: dbUrl.username,
+  password: dbUrl.password,
+  database: dbUrl.pathname.replace("/", ""),
+  port: dbUrl.port,
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
+}).promise();
+
+console.log("✅ MySQL Connected (Parsed URL)");
+
+
+// ===============================
+// ❤️ TEST ROUTE
+// ===============================
+app.get("/", (req, res) => {
+  res.send("🚀 API is running...");
 });
 
-console.log("✅ MySQL Pool Created");
-
 
 // ===============================
-// 🚀 POST PERFORMANCE
+// 🚀 INSERT PERFORMANCE
 // ===============================
-app.post("/api/performance", (req, res) => {
-  const { productivity, accuracy } = req.body;
+app.post("/api/performance", async (req, res) => {
+  try {
+    const { productivity, accuracy } = req.body;
 
-  const query = `
-    INSERT INTO performance (productivity, accuracy)
-    VALUES (?, ?)
-  `;
+    const query = `
+      INSERT INTO performance (productivity, accuracy)
+      VALUES (?, ?)
+    `;
 
-  db.query(query, [productivity, accuracy], (err, result) => {
-    if (err) {
-      console.error("❌ Insert Error:", err);
-      return res.status(500).json({ success: false, error: err.message });
-    }
+    await db.query(query, [productivity, accuracy]);
 
     res.json({ success: true });
-  });
+
+  } catch (err) {
+    console.error("❌ INSERT ERROR:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 
 // ===============================
-// 📊 GET HISTORY (FINAL)
+// 📊 GET HISTORY (WITH LEVEL)
 // ===============================
-app.get("/api/history", (req, res) => {
-  const query = "SELECT * FROM performance";
+app.get("/api/history", async (req, res) => {
+  try {
+    const [results] = await db.query("SELECT * FROM performance");
 
-  db.query(query, (err, results) => {
-    if (err) {
-      console.error("❌ Fetch Error:", err);
-      return res.status(500).json({ success: false, error: err.message });
-    }
-
-    // ✅ ADD LEVEL DYNAMICALLY
     const updatedResults = results.map((item) => {
       let level = "Medium";
 
@@ -75,15 +83,11 @@ app.get("/api/history", (req, res) => {
     });
 
     res.json({ success: true, data: updatedResults });
-  });
-});
 
-
-// ===============================
-// ❤️ TEST ROUTE
-// ===============================
-app.get("/", (req, res) => {
-  res.send("API running 🚀");
+  } catch (err) {
+    console.error("❌ FETCH ERROR:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 
