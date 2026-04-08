@@ -4,11 +4,10 @@ const cors = require("cors");
 
 const app = express();
 
-// ✅ Middleware
 app.use(cors());
 app.use(express.json());
 
-// ✅ MySQL Connection (use your env variables)
+// ✅ DB Connection
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -16,12 +15,11 @@ const db = mysql.createConnection({
   database: process.env.DB_NAME,
 });
 
-// ✅ Connect DB
 db.connect((err) => {
   if (err) {
-    console.error("❌ MySQL connection failed:", err);
+    console.error("❌ DB ERROR:", err);
   } else {
-    console.log("✅ Connected to MySQL");
+    console.log("✅ DB Connected");
   }
 });
 
@@ -32,33 +30,24 @@ db.connect((err) => {
 app.post("/api/performance", (req, res) => {
   const { productivity, accuracy } = req.body;
 
-  // 🎯 LEVEL LOGIC
-  let level = "Medium";
-
-  if (productivity >= 85 && accuracy >= 85) {
-    level = "Easy";
-  } else if (productivity <= 60 || accuracy <= 60) {
-    level = "Hard";
-  }
-
   const query = `
-    INSERT INTO performance (productivity, accuracy, level)
-    VALUES (?, ?, ?)
+    INSERT INTO performance (productivity, accuracy)
+    VALUES (?, ?)
   `;
 
-  db.query(query, [productivity, accuracy, level], (err, result) => {
+  db.query(query, [productivity, accuracy], (err, result) => {
     if (err) {
       console.error("❌ Insert Error:", err);
-      return res.status(500).json({ success: false, error: err.message });
+      return res.status(500).json({ success: false });
     }
 
-    res.json({ success: true, level });
+    res.json({ success: true });
   });
 });
 
 
 // ===============================
-// 📊 GET HISTORY (FIXED)
+// 📊 GET HISTORY (FINAL FIX)
 // ===============================
 app.get("/api/history", (req, res) => {
   const query = "SELECT * FROM performance";
@@ -66,25 +55,35 @@ app.get("/api/history", (req, res) => {
   db.query(query, (err, results) => {
     if (err) {
       console.error("❌ Fetch Error:", err);
-      return res.status(500).json({ success: false, error: err.message });
+      return res.status(500).json({ success: false });
     }
 
-    res.json({ success: true, data: results });
+    // ✅ ADD LEVEL DYNAMICALLY (NO DB DEPENDENCY)
+    const updatedResults = results.map((item) => {
+      let level = "Medium";
+
+      if (item.productivity >= 85 && item.accuracy >= 85) {
+        level = "Easy";
+      } else if (item.productivity <= 60 || item.accuracy <= 60) {
+        level = "Hard";
+      }
+
+      return {
+        ...item,
+        level,
+      };
+    });
+
+    res.json({ success: true, data: updatedResults });
   });
 });
 
 
 // ===============================
-// ❤️ TEST ROUTE
-// ===============================
 app.get("/", (req, res) => {
-  res.send("API is running 🚀");
+  res.send("API running 🚀");
 });
 
-
-// ===============================
-// 🚀 START SERVER
-// ===============================
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
