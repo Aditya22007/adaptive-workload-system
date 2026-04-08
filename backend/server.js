@@ -4,24 +4,24 @@ const cors = require("cors");
 
 const app = express();
 
+// ✅ Middleware
 app.use(cors());
 app.use(express.json());
 
-// ✅ DB Connection
-const db = mysql.createConnection({
+// ===============================
+// ✅ MySQL POOL (FINAL FIX)
+// ===============================
+const db = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
 });
 
-db.connect((err) => {
-  if (err) {
-    console.error("❌ DB ERROR:", err);
-  } else {
-    console.log("✅ DB Connected");
-  }
-});
+console.log("✅ MySQL Pool Created");
 
 
 // ===============================
@@ -38,7 +38,7 @@ app.post("/api/performance", (req, res) => {
   db.query(query, [productivity, accuracy], (err, result) => {
     if (err) {
       console.error("❌ Insert Error:", err);
-      return res.status(500).json({ success: false });
+      return res.status(500).json({ success: false, error: err.message });
     }
 
     res.json({ success: true });
@@ -47,7 +47,7 @@ app.post("/api/performance", (req, res) => {
 
 
 // ===============================
-// 📊 GET HISTORY (FINAL FIX)
+// 📊 GET HISTORY (FINAL)
 // ===============================
 app.get("/api/history", (req, res) => {
   const query = "SELECT * FROM performance";
@@ -55,10 +55,10 @@ app.get("/api/history", (req, res) => {
   db.query(query, (err, results) => {
     if (err) {
       console.error("❌ Fetch Error:", err);
-      return res.status(500).json({ success: false });
+      return res.status(500).json({ success: false, error: err.message });
     }
 
-    // ✅ ADD LEVEL DYNAMICALLY (NO DB DEPENDENCY)
+    // ✅ ADD LEVEL DYNAMICALLY
     const updatedResults = results.map((item) => {
       let level = "Medium";
 
@@ -80,10 +80,16 @@ app.get("/api/history", (req, res) => {
 
 
 // ===============================
+// ❤️ TEST ROUTE
+// ===============================
 app.get("/", (req, res) => {
   res.send("API running 🚀");
 });
 
+
+// ===============================
+// 🚀 START SERVER
+// ===============================
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
