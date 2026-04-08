@@ -28,20 +28,27 @@ export default function App() {
   }, [user]);
 
   // =============================
-  // 🔥 FETCH REAL-TIME DATA
+  // 🔥 FETCH REAL-TIME DATA (JWT)
   // =============================
   useEffect(() => {
     if (!user) return;
 
     const fetchData = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/data`);
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(`${API_URL}/api/data`, {
+          headers: {
+            Authorization: token
+          }
+        });
+
         const result = await res.json();
 
         if (result.success) {
           setApiData(result.data);
         } else {
-          console.error("API failed");
+          console.error("API failed:", result);
         }
 
       } catch (error) {
@@ -58,14 +65,21 @@ export default function App() {
   }, [user]);
 
   // =============================
-  // 🔥 FETCH HISTORY
+  // 🔥 FETCH HISTORY (JWT)
   // =============================
   useEffect(() => {
     if (!user) return;
 
     const fetchHistory = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/history`);
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(`${API_URL}/api/history`, {
+          headers: {
+            Authorization: token
+          }
+        });
+
         const result = await res.json();
 
         if (result.success) {
@@ -126,6 +140,7 @@ export default function App() {
   // =============================
   const handleLogout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("token"); // 🔥 IMPORTANT
     setUser(null);
   };
 
