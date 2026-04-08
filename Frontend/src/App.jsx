@@ -8,9 +8,8 @@ import {
 
 export default function App() {
 
-  const API_URL = "https://adaptive-workload-system.onrender.com"; // 🔥 ADDED
+  const API_URL = "https://adaptive-workload-system.onrender.com";
 
-  // 🔐 USER STATE
   const [user, setUser] = useState(
     JSON.parse(localStorage.getItem("user")) || null
   );
@@ -29,21 +28,27 @@ export default function App() {
   }, [user]);
 
   // =============================
-  // 🔥 REAL-TIME DATA
+  // 🔥 FETCH REAL-TIME DATA
   // =============================
   useEffect(() => {
     if (!user) return;
 
-    const fetchData = () => {
-      fetch(`${API_URL}/api/data`) // ✅ FIXED
-        .then(res => res.json())
-        .then(res => {
-          if (res.success) {
-            setApiData(res.data);
-          }
-          setLoading(false);
-        })
-        .catch(err => console.error("API Error:", err));
+    const fetchData = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/data`);
+        const result = await res.json();
+
+        if (result.success) {
+          setApiData(result.data);
+        } else {
+          console.error("API failed");
+        }
+
+      } catch (error) {
+        console.error("API Error:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchData();
@@ -58,14 +63,20 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
 
-    fetch(`${API_URL}/api/history`) // ✅ FIXED
-      .then(res => res.json())
-      .then(res => {
-        if (res.success) {
-          setHistory(res.data);
+    const fetchHistory = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/history`);
+        const result = await res.json();
+
+        if (result.success) {
+          setHistory(result.data);
         }
-      })
-      .catch(err => console.error("History Error:", err));
+      } catch (error) {
+        console.error("History Error:", error);
+      }
+    };
+
+    fetchHistory();
   }, [user]);
 
   // =============================
@@ -93,7 +104,7 @@ export default function App() {
   }
 
   // =============================
-  // ⏳ LOADING
+  // ⏳ LOADING SCREEN
   // =============================
   if (loading || !apiData) {
     return (

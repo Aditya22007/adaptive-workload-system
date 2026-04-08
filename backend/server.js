@@ -36,8 +36,11 @@ app.get("/api/data", (req, res) => {
 
     let level = "Medium";
 
-    if (productivity > 85 && accuracy > 85) level = "Hard";
-    else if (productivity < 65 || accuracy < 65) level = "Easy";
+    if (productivity > 85 && accuracy > 85) {
+      level = "Hard";
+    } else if (productivity < 65 || accuracy < 65) {
+      level = "Easy";
+    }
 
     let tasks = [];
 
@@ -57,6 +60,10 @@ app.get("/api/data", (req, res) => {
       tasks
     };
 
+    // 🔥 DEBUG LOG
+    console.log("Generated Data:", responseData);
+
+    // 🔹 Save to DB
     if (dbConnected) {
       const query = `
         INSERT INTO performance (productivity, accuracy, level)
@@ -64,26 +71,30 @@ app.get("/api/data", (req, res) => {
       `;
 
       db.query(query, [productivity, accuracy, level], (err) => {
-        if (err) console.error("DB Insert Error:", err.message);
+        if (err) console.error("❌ DB Insert Error:", err.message);
       });
     }
 
     res.json({ success: true, data: responseData });
 
   } catch (error) {
+    console.error("❌ Server Error:", error);
     res.status(500).json({ success: false, error: "Server error" });
   }
 });
 
 // =============================
-// 📊 HISTORY API (NO AUTH)
+// 📊 HISTORY API
 // =============================
 app.get("/api/history", (req, res) => {
   if (dbConnected) {
     db.query(
       "SELECT productivity, accuracy, created_at FROM performance ORDER BY id DESC LIMIT 10",
       (err, result) => {
-        if (err) return res.status(500).json({ success: false });
+        if (err) {
+          console.error("❌ DB Fetch Error:", err.message);
+          return res.status(500).json({ success: false });
+        }
 
         res.json({ success: true, data: result.reverse() });
       }
@@ -106,7 +117,7 @@ app.post("/api/register", async (req, res) => {
   const { username, email, password } = req.body;
 
   if (!username || !email || !password) {
-    return res.status(400).json({ success: false });
+    return res.status(400).json({ success: false, message: "All fields required" });
   }
 
   try {
@@ -115,18 +126,22 @@ app.post("/api/register", async (req, res) => {
     const query = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
 
     db.query(query, [username, email, hashedPassword], (err) => {
-      if (err) return res.status(500).json({ success: false });
+      if (err) {
+        console.error("❌ Registration Error:", err.message);
+        return res.status(500).json({ success: false });
+      }
 
-      res.json({ success: true, message: "User registered" });
+      res.json({ success: true, message: "User registered successfully" });
     });
 
   } catch (err) {
+    console.error("❌ Hash Error:", err);
     res.status(500).json({ success: false });
   }
 });
 
 // =============================
-// 🔐 LOGIN (TOKEN STILL GENERATED)
+// 🔐 LOGIN
 // =============================
 app.post("/api/login", (req, res) => {
   const { email, password } = req.body;
@@ -134,10 +149,13 @@ app.post("/api/login", (req, res) => {
   const query = "SELECT * FROM users WHERE email = ?";
 
   db.query(query, [email], async (err, result) => {
-    if (err) return res.status(500).json({ success: false });
+    if (err) {
+      console.error("❌ Login Error:", err.message);
+      return res.status(500).json({ success: false });
+    }
 
     if (result.length === 0) {
-      return res.json({ success: false });
+      return res.json({ success: false, message: "User not found" });
     }
 
     const user = result[0];
@@ -145,7 +163,7 @@ app.post("/api/login", (req, res) => {
     const match = await bcrypt.compare(password, user.password);
 
     if (!match) {
-      return res.json({ success: false });
+      return res.json({ success: false, message: "Wrong password" });
     }
 
     const token = jwt.sign({ id: user.id }, SECRET, { expiresIn: "1h" });
