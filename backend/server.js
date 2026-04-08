@@ -1,157 +1,97 @@
-import React, { useEffect, useState } from "react";
-import Login from "./Login";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  Legend,
-  PieChart,
-  Pie,
-  Cell
-} from "recharts";
+const express = require("express");
+const mysql = require("mysql2");
+const cors = require("cors");
 
-export default function App() {
-  const [user, setUser] = useState(null);
-  const [data, setData] = useState(null);
-  const [history, setHistory] = useState([]);
+const app = express();
 
-  const API_URL = "https://adaptive-workload-system.onrender.com";
+// ✅ Middleware
+app.use(cors());
+app.use(express.json());
 
-  // 🔐 Auto login (token)
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      setUser({ username: "User" });
-    }
-  }, []);
+// ✅ MySQL Connection (Railway / Render)
+const db = mysql.createConnection({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+});
 
-  // 📊 Fetch current data
-  useEffect(() => {
-    if (user) {
-      fetch(`${API_URL}/api/data`)
-        .then(res => res.json())
-        .then(res => {
-          if (res.success) {
-            setData(res.data);
-          }
-        });
+// ✅ Connect DB
+db.connect((err) => {
+  if (err) {
+    console.error("❌ MySQL connection failed:", err);
+  } else {
+    console.log("✅ Connected to MySQL");
+  }
+});
 
-      fetch(`${API_URL}/api/history`)
-        .then(res => res.json())
-        .then(res => {
-          if (res.success) {
-            setHistory(res.data);
-          }
-        });
-    }
-  }, [user]);
 
-  // 🚪 Logout
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
-  };
+// ===============================
+// 🚀 POST PERFORMANCE (MAIN LOGIC)
+// ===============================
+app.post("/api/performance", (req, res) => {
+  const { productivity, accuracy } = req.body;
 
-  // 📊 Prepare chart data
-  const chartData = history.map((item, index) => ({
-    name: `#${index + 1}`,
-    productivity: item.productivity,
-    accuracy: item.accuracy
-  }));
+  // 🎯 LEVEL LOGIC (IMPORTANT)
+  let level = "Medium";
 
-  // 🥧 Pie chart data
-  const levelData = [
-    {
-      name: "Easy",
-      value: history.filter(h => h.level === "Easy").length
-    },
-    {
-      name: "Medium",
-      value: history.filter(h => h.level === "Medium").length
-    },
-    {
-      name: "Hard",
-      value: history.filter(h => h.level === "Hard").length
-    }
-  ];
-
-  const COLORS = ["#00C49F", "#FFBB28", "#FF4444"];
-
-  // 🔐 If not logged in
-  if (!user) {
-    return <Login setUser={setUser} />;
+  if (productivity >= 85 && accuracy >= 85) {
+    level = "Easy";
+  } else if (productivity <= 60 || accuracy <= 60) {
+    level = "Hard";
   }
 
-  return (
-    <div style={{ padding: "20px", color: "white", background: "#0B0F19", minHeight: "100vh" }}>
-      
-      <h1>Welcome, {user.username} 👋</h1>
-      <button onClick={handleLogout} style={{ marginBottom: "20px" }}>
-        Logout
-      </button>
+  const query = `
+    INSERT INTO performance (productivity, accuracy, level)
+    VALUES (?, ?, ?)
+  `;
 
-      {/* 📊 Current Performance */}
-      {data && (
-        <div style={{ marginBottom: "30px", background: "#111827", padding: "20px", borderRadius: "10px" }}>
-          <h2>📊 Current Performance</h2>
-          <p>Productivity: {data.productivity}</p>
-          <p>Accuracy: {data.accuracy}</p>
-          <p>Level: {data.level}</p>
-          <p>Tasks Count: {data.tasksCount}</p>
+  db.query(query, [productivity, accuracy, level], (err, result) => {
+    if (err) {
+      console.error("❌ Insert Error:", err);
+      return res.status(500).json({ success: false, error: err });
+    }
 
-          <h3>Tasks:</h3>
-          <ul>
-            {data.tasks.map((task, i) => (
-              <li key={i}>{task}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+    res.json({ success: true, level });
+  });
+});
 
-      {/* 📈 Line Chart */}
-      <div style={{ marginBottom: "30px", background: "#111827", padding: "20px", borderRadius: "10px" }}>
-        <h2>📈 Performance History</h2>
 
-        {history.length === 0 ? (
-          <p>No history available</p>
-        ) : (
-          <LineChart width={500} height={300} data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="productivity" stroke="#8884d8" />
-            <Line type="monotone" dataKey="accuracy" stroke="#82ca9d" />
-          </LineChart>
-        )}
-      </div>
+// ===============================
+// 📊 GET HISTORY (FOR CHARTS)
+// ===============================
+app.get("/api/history", (req, res) => {
+  const query = `
+    SELECT productivity, accuracy, level
+    FROM performance
+    ORDER BY id DESC
+    LIMIT 10
+  `;
 
-      {/* 🥧 Pie Chart */}
-      <div style={{ background: "#111827", padding: "20px", borderRadius: "10px" }}>
-        <h2>🥧 Performance Distribution</h2>
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("❌ Fetch Error:", err);
+      return res.status(500).json({ success: false });
+    }
 
-        <PieChart width={400} height={300}>
-          <Pie
-            data={levelData}
-            cx="50%"
-            cy="50%"
-            outerRadius={100}
-            dataKey="value"
-            label
-          >
-            {levelData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index]} />
-            ))}
-          </Pie>
-          <Tooltip />
-          <Legend />
-        </PieChart>
-      </div>
+    res.json({ success: true, data: results });
+  });
+});
 
-    </div>
-  );
-}
+
+// ===============================
+// ❤️ TEST ROUTE
+// ===============================
+app.get("/", (req, res) => {
+  res.send("API is running 🚀");
+});
+
+
+// ===============================
+// 🚀 SERVER START
+// ===============================
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`🔥 Server running on port ${PORT}`);
+});
