@@ -27,7 +27,7 @@ db.connect((err) => {
 });
 
 // =============================
-// 🧠 AI ENGINE (NO AUTH NOW)
+// 🧠 AI ENGINE (NO AUTH)
 // =============================
 app.get("/api/data", (req, res) => {
   try {
@@ -36,11 +36,8 @@ app.get("/api/data", (req, res) => {
 
     let level = "Medium";
 
-    if (productivity > 85 && accuracy > 85) {
-      level = "Hard";
-    } else if (productivity < 65 || accuracy < 65) {
-      level = "Easy";
-    }
+    if (productivity > 85 && accuracy > 85) level = "Hard";
+    else if (productivity < 65 || accuracy < 65) level = "Easy";
 
     let tasks = [];
 
@@ -60,10 +57,8 @@ app.get("/api/data", (req, res) => {
       tasks
     };
 
-    // 🔥 DEBUG LOG
     console.log("Generated Data:", responseData);
 
-    // 🔹 Save to DB
     if (dbConnected) {
       const query = `
         INSERT INTO performance (productivity, accuracy, level)
@@ -111,13 +106,18 @@ app.get("/api/history", (req, res) => {
 });
 
 // =============================
-// 👤 REGISTER
+// 👤 REGISTER (FIXED + DEBUG)
 // =============================
 app.post("/api/register", async (req, res) => {
   const { username, email, password } = req.body;
 
+  console.log("📥 REGISTER REQUEST:", req.body); // 🔥 DEBUG
+
   if (!username || !email || !password) {
-    return res.status(400).json({ success: false, message: "All fields required" });
+    return res.status(400).json({
+      success: false,
+      message: "All fields required"
+    });
   }
 
   try {
@@ -127,11 +127,20 @@ app.post("/api/register", async (req, res) => {
 
     db.query(query, [username, email, hashedPassword], (err) => {
       if (err) {
-        console.error("❌ Registration Error:", err.message);
-        return res.status(500).json({ success: false });
+        console.error("❌ Registration Error:", err.message); // 🔥 IMPORTANT
+
+        return res.status(500).json({
+          success: false,
+          message: err.message
+        });
       }
 
-      res.json({ success: true, message: "User registered successfully" });
+      console.log("✅ User Registered:", email);
+
+      res.json({
+        success: true,
+        message: "User registered successfully"
+      });
     });
 
   } catch (err) {
@@ -141,10 +150,12 @@ app.post("/api/register", async (req, res) => {
 });
 
 // =============================
-// 🔐 LOGIN
+// 🔐 LOGIN (IMPROVED)
 // =============================
 app.post("/api/login", (req, res) => {
   const { email, password } = req.body;
+
+  console.log("📥 LOGIN REQUEST:", email); // 🔥 DEBUG
 
   const query = "SELECT * FROM users WHERE email = ?";
 
@@ -155,6 +166,7 @@ app.post("/api/login", (req, res) => {
     }
 
     if (result.length === 0) {
+      console.log("❌ User not found");
       return res.json({ success: false, message: "User not found" });
     }
 
@@ -163,10 +175,13 @@ app.post("/api/login", (req, res) => {
     const match = await bcrypt.compare(password, user.password);
 
     if (!match) {
+      console.log("❌ Wrong password");
       return res.json({ success: false, message: "Wrong password" });
     }
 
     const token = jwt.sign({ id: user.id }, SECRET, { expiresIn: "1h" });
+
+    console.log("✅ Login success:", email);
 
     res.json({
       success: true,

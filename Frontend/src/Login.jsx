@@ -33,20 +33,32 @@ export default function Login({ setUser }) {
 
       const data = await res.json();
 
-      if (data.success) {
-        alert(isLogin ? "Login Success ✅" : "Registered Successfully ✅");
+      console.log("API Response:", data); // 🔥 DEBUG
+
+      // ✅ FIXED LOGIC
+      if (res.ok && (data.success || data.message)) {
 
         if (isLogin) {
-          // 🔥 VERY IMPORTANT (JWT FIX)
-          localStorage.setItem("token", data.token);
 
-          // Save user
+          // ❌ If login failed
+          if (!data.success) {
+            alert(data.message || "Login failed ❌");
+            return;
+          }
+
+          // ✅ Login success
+          alert("Login Success ✅");
+
+          localStorage.setItem("token", data.token);
           setUser(data.user);
+
         } else {
+          // ✅ Register success
+          alert("Registered Successfully ✅");
           setIsLogin(true);
         }
 
-        // ✅ reset form
+        // 🔄 Reset form
         setForm({
           username: "",
           email: "",
@@ -54,11 +66,11 @@ export default function Login({ setUser }) {
         });
 
       } else {
-        alert(data.message || "Invalid credentials ❌");
+        alert(data.message || "Something went wrong ❌");
       }
 
     } catch (error) {
-      console.error(error);
+      console.error("Error:", error);
       alert("Server error ❌");
     }
   };
