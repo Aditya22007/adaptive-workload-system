@@ -37,7 +37,11 @@ export default function Login({ setUser }) {
         alert(isLogin ? "Login Success ✅" : "Registered Successfully ✅");
 
         if (isLogin) {
-          setUser(data.user); // 🔥 important
+          // 🔥 VERY IMPORTANT (JWT FIX)
+          localStorage.setItem("token", data.token);
+
+          // Save user
+          setUser(data.user);
         } else {
           setIsLogin(true);
         }
@@ -50,7 +54,7 @@ export default function Login({ setUser }) {
         });
 
       } else {
-        alert("Invalid credentials ❌");
+        alert(data.message || "Invalid credentials ❌");
       }
 
     } catch (error) {
@@ -69,15 +73,22 @@ export default function Login({ setUser }) {
       color: "white"
     }}>
 
-      <div style={{ background: "#111827", padding: "30px", borderRadius: "12px", width: "300px" }}>
-        <h2>{isLogin ? "Login" : "Register"}</h2>
+      <div style={{
+        background: "#111827",
+        padding: "30px",
+        borderRadius: "12px",
+        width: "300px"
+      }}>
+        <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
+          {isLogin ? "Login" : "Register"}
+        </h2>
 
         {!isLogin && (
           <input
             placeholder="Username"
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
-            style={{ width: "100%", marginBottom: "10px" }}
+            style={{ width: "100%", marginBottom: "10px", padding: "8px" }}
           />
         )}
 
@@ -85,7 +96,7 @@ export default function Login({ setUser }) {
           placeholder="Email"
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
-          style={{ width: "100%", marginBottom: "10px" }}
+          style={{ width: "100%", marginBottom: "10px", padding: "8px" }}
         />
 
         <input
@@ -93,19 +104,33 @@ export default function Login({ setUser }) {
           placeholder="Password"
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
-          style={{ width: "100%", marginBottom: "10px" }}
+          style={{ width: "100%", marginBottom: "10px", padding: "8px" }}
         />
 
         <button 
           onClick={handleSubmit} 
-          style={{ marginTop: "10px", width: "100%" }}
+          style={{
+            marginTop: "10px",
+            width: "100%",
+            padding: "10px",
+            background: "#3B82F6",
+            color: "white",
+            border: "none",
+            borderRadius: "8px",
+            cursor: "pointer"
+          }}
         >
           {isLogin ? "Login" : "Register"}
         </button>
 
         <p
           onClick={() => setIsLogin(!isLogin)}
-          style={{ cursor: "pointer", marginTop: "10px", textAlign: "center" }}
+          style={{
+            cursor: "pointer",
+            marginTop: "15px",
+            textAlign: "center",
+            color: "#9CA3AF"
+          }}
         >
           {isLogin ? "Create account" : "Already have account?"}
         </p>
