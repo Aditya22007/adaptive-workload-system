@@ -8,7 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ MySQL Connection (Railway / Render)
+// ✅ MySQL Connection (use your env variables)
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -27,12 +27,12 @@ db.connect((err) => {
 
 
 // ===============================
-// 🚀 POST PERFORMANCE (MAIN LOGIC)
+// 🚀 POST PERFORMANCE
 // ===============================
 app.post("/api/performance", (req, res) => {
   const { productivity, accuracy } = req.body;
 
-  // 🎯 LEVEL LOGIC (IMPORTANT)
+  // 🎯 LEVEL LOGIC
   let level = "Medium";
 
   if (productivity >= 85 && accuracy >= 85) {
@@ -49,7 +49,7 @@ app.post("/api/performance", (req, res) => {
   db.query(query, [productivity, accuracy, level], (err, result) => {
     if (err) {
       console.error("❌ Insert Error:", err);
-      return res.status(500).json({ success: false, error: err });
+      return res.status(500).json({ success: false, error: err.message });
     }
 
     res.json({ success: true, level });
@@ -58,20 +58,15 @@ app.post("/api/performance", (req, res) => {
 
 
 // ===============================
-// 📊 GET HISTORY (FOR CHARTS)
+// 📊 GET HISTORY (FIXED)
 // ===============================
 app.get("/api/history", (req, res) => {
-  const query = `
-    SELECT productivity, accuracy, level
-    FROM performance
-    ORDER BY id DESC
-    LIMIT 10
-  `;
+  const query = "SELECT * FROM performance";
 
   db.query(query, (err, results) => {
     if (err) {
       console.error("❌ Fetch Error:", err);
-      return res.status(500).json({ success: false });
+      return res.status(500).json({ success: false, error: err.message });
     }
 
     res.json({ success: true, data: results });
@@ -88,7 +83,7 @@ app.get("/", (req, res) => {
 
 
 // ===============================
-// 🚀 SERVER START
+// 🚀 START SERVER
 // ===============================
 const PORT = process.env.PORT || 5000;
 
